@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mobile QR & Barcode Scanner</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 480px;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+}
+
+h2 { text-align: center; }
+
+#status {
+  padding: 12px;
+  text-align: center;
+  background: #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 9px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.start { background: #16a34a; color: white; }
+.stop { background: #dc2626; color: white; }
+
+.result {
+  background: #dcfce7;
+  padding: 15px;
+  margin-top: 20px;
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+
+#output {
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 10px;
+  color: #166534;
+}
+
+.history-item {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  overflow-wrap: anywhere;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<h2>📷 Mobile Scanner</h2>
+
+<div id="status">Ready to scan</div>
+
+<div id="reader"></div>
+
+<button class="start" onclick="startScanner()">
+START SCANNING
+</button>
+
+<button class="stop" onclick="stopScanner()">
+STOP CAMERA
+</button>
+
+<div class="result">
+  Latest Result:
+  <div id="output">No data</div>
+</div>
+
+<h3>Scan History</h3>
+<div id="history">No history</div>
+
+</div>
+
+<script>
+let scanner = null;
+let running = false;
+let lastResult = "";
+let historyItems = [];
+
+function status(message) {
+  document.getElementById("status").textContent = message;
+}
+
+async function startScanner() {
+  if (running) return;
+
+  try {
+    status("Requesting camera permission...");
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Camera API unavailable. Open using HTTPS.");
+    }
+
+    if (typeof Html5Qrcode === "undefined") {
+      throw new Error("Scanner library failed to load.");
+    }
+
+    if (!scanner) {
+      scanner = new Html5Qrcode("reader");
+    }
+
+    const formats = [
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.CODE_93,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.ITF,
+      Html5QrcodeSupportedFormats.CODABAR
+    ];
+
+    await scanner.start(
+      { facingMode: "environment" },
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 180 },
+        formatsToSupport: formats
+      },
+      onSuccess,
+      () => {}
+    );
+
+    running = true;
+    status("🟢 CAMERA READY");
+
+  } catch (error) {
+    console.error(error);
+    status("❌ " + error.name + ": " + error.message);
+  }
+}
+
+function onSuccess(text, result) {
+  if (text === lastResult) return;
+
+  lastResult = text;
+
+  document.getElementById("output").textContent = text;
+
+  const format = result.result.format.formatName;
+
+  const item = document.createElement("div");
+  item.className = "history-item";
+  item.textContent =
+    new Date().toLocaleTimeString() +
+    " | " + format + " | " + text;
+
+  const history = document.getElementById("history");
+
+  if (historyItems.length === 0) {
+    history.innerHTML = "";
+  }
+
+  history.prepend(item);
+  historyItems.push(text);
+
+  status("✅ SCAN SUCCESS: " + format);
+
+  setTimeout(() => {
+    if (lastResult === text) lastResult = "";
+  }, 2000);
+}
+
+async function stopScanner() {
+  if (!scanner || !running) {
+    status("Camera already stopped");
+    return;
+  }
+
+  try {
+    await scanner.stop();
+    running = false;
+    status("Camera stopped");
+  } catch (error) {
+    status("ERROR: " + error.message);
+  }
+}
+</script>
+</body>
+</html>
