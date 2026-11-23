@@ -356,6 +356,19 @@ async function stopScanner() {
 
 }
 
+
+function closeScannerPage() {
+  setTimeout(() => {
+    window.close();
+
+    // กรณี Browser ไม่อนุญาตให้ปิดแท็บ
+    status("ส่งข้อมูลแล้ว กรุณาปิดแท็บนี้");
+  }, 800);
+}
+
+  
+
+  
 // ส่งข้อมูลกลับ Apps Script
 async function sendAgain() {
 
