@@ -110,7 +110,7 @@ button:disabled {
     ส่งค่ากลับ Apps Script อีกครั้ง
   </button>
 
-  <button onclick="window.close()" style="background:#64748b">
+  <button onclick="closeScannerManually()" style="background:#64748b">
     ปิดหน้าสแกน
   </button>
 
@@ -357,15 +357,38 @@ async function stopScanner() {
 }
 
 
-function closeScannerPage() {
-  setTimeout(() => {
-    window.close();
 
-    // กรณี Browser ไม่อนุญาตให้ปิดแท็บ
-    status("ส่งข้อมูลแล้ว กรุณาปิดแท็บนี้");
-  }, 800);
+function closeScannerPage() {
+  status("ส่งข้อมูลแล้ว กำลังปิดหน้า Scanner...");
+
+  window.close();
+
+  setTimeout(() => {
+    if (!window.closed) {
+      status("Browser ไม่อนุญาตให้ปิดแท็บอัตโนมัติ กรุณาปิดแท็บนี้ด้วย X");
+    }
+  }, 500);
 }
 
+
+
+async function closeScannerManually() {
+  await stopScanner();
+
+  // ลองปิดแท็บ
+  window.close();
+
+  // หากปิดไม่ได้ ให้กลับไปหน้าก่อนหน้า
+  setTimeout(() => {
+    if (!window.closed) {
+      if (history.length > 1) {
+        history.back();
+      } else {
+        status("ไม่สามารถปิดแท็บได้ กรุณากด X บนแท็บ Browser");
+      }
+    }
+  }, 300);
+}
   
 
   
