@@ -1,0 +1,233 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App Center Scanner</title>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.container {
+  max-width: 520px;
+  margin: 20px auto;
+  padding: 22px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 5px 25px #0001;
+}
+
+h2 { text-align: center; }
+
+p { text-align: center; color: #64748b; }
+
+button, select {
+  width: 100%;
+  padding: 14px;
+  margin: 7px 0;
+  border-radius: 9px;
+  font-size: 15px;
+}
+
+button {
+  border: 0;
+  color: white;
+  background: #2563eb;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.stop { background: #dc2626; }
+.result { background: #f1f5f9; padding: 15px;
+  border-radius: 10px; word-break: break-all; }
+.status { text-align: center; margin-top: 15px; font-size: 14px; }
+#reader { margin: 15px auto; overflow: hidden; border-radius: 12px; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>📷 App Center Scanner</h2>
+  <p>QR Code & Barcode Scanner</p>
+
+  <select id="cameraSelect">
+    <option value="">กำลังค้นหากล้อง...</option>
+  </select>
+
+  <button id="startBtn" onclick="startScanner()">
+    ▶ เริ่มสแกน
+  </button>
+
+  <button class="stop" onclick="stopScanner()">
+    ■ หยุดกล้อง
+  </button>
+
+  <div id="reader"></div>
+
+  <h3>ผลการสแกน</h3>
+  <div class="result" id="resultText">ยังไม่มีข้อมูล</div>
+
+  <div class="status" id="status">กำลังเตรียมระบบ...</div>
+
+  <button onclick="sendAgain()" style="background:#059669">
+    ส่งค่ากลับ Apps Script อีกครั้ง
+  </button>
+
+  <button onclick="window.close()" style="background:#64748b">
+    ปิดหน้าสแกน
+  </button>
+</div>
+
+<script>
+let scanner = null;
+let scanning = false;
+let lastResult = "";
+let sent = false;
+
+const formats = [
+  Html5QrcodeSupportedFormats.QR_CODE,
+  Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.CODE_39,
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
+  Html5QrcodeSupportedFormats.ITF,
+  Html5QrcodeSupportedFormats.PDF_417,
+  Html5QrcodeSupportedFormats.DATA_MATRIX
+];
+
+const config = {
+  fps: 10,
+  qrbox: { width: 250, height: 250 },
+  formatsToSupport: formats
+};
+
+function status(text) {
+  document.getElementById("status").textContent = text;
+}
+
+async function loadCameras() {
+  try {
+    const cameras = await Html5Qrcode.getCameras();
+    const select = document.getElementById("cameraSelect");
+
+    select.innerHTML = "";
+
+    cameras.forEach((camera, index) => {
+      const option = document.createElement("option");
+      option.value = camera.id;
+      option.textContent = camera.label || "Camera " + (index + 1);
+      select.appendChild(option);
+    });
+
+    const back = cameras.find(c =>
+      /back|rear|environment|หลัง/i.test(c.label)
+    );
+
+    if (back) select.value = back.id;
+
+    status(cameras.length ? "พบกล้อง " + cameras.length + " ตัว" : "ไม่พบกล้อง");
+
+  } catch (error) {
+    status("ไม่สามารถเข้าถึงกล้อง: " + error.message);
+  }
+}
+
+async function startScanner() {
+  if (scanning) return;
+
+  const cameraId = document.getElementById("cameraSelect").value;
+
+  if (!cameraId) {
+    alert("ไม่พบกล้อง กรุณาตรวจสอบสิทธิ์กล้อง");
+    return;
+  }
+
+  try {
+    scanner = new Html5Qrcode("reader", {
+      formatsToSupport: formats,
+      verbose: false
+    });
+
+    status("กำลังเปิดกล้อง...");
+
+    await scanner.start(
+      cameraId,
+      config,
+      async (decodedText) => {
+        if (lastResult) return;
+
+        lastResult = decodedText;
+        document.getElementById("resultText").textContent = decodedText;
+
+        await stopScanner();
+        sendAgain();
+      },
+      () => {}
+    );
+
+    scanning = true;
+    document.getElementById("startBtn").disabled = true;
+    status("กำลังสแกน...");
+
+  } catch (error) {
+    scanning = false;
+    scanner = null;
+    document.getElementById("startBtn").disabled = false;
+    status("เปิดกล้องไม่สำเร็จ: " + error.message);
+  }
+}
+
+async function stopScanner() {
+  if (!scanner || !scanning) return;
+
+  try {
+    await scanner.stop();
+    await scanner.clear();
+  } catch (error) {
+    console.error(error);
+  }
+
+  scanning = false;
+  scanner = null;
+  document.getElementById("startBtn").disabled = false;
+}
+
+function sendAgain() {
+  if (!lastResult) {
+    status("ยังไม่มีข้อมูลสำหรับส่ง");
+    return;
+  }
+
+  if (!window.opener || window.opener.closed) {
+    status("ไม่พบหน้า Apps Script ที่เปิด Scanner นี้");
+    return;
+  }
+
+  window.opener.postMessage({
+    type: "APP_CENTER_QR_RESULT",
+    value: lastResult
+  }, "*");
+
+  sent = true;
+  status("✓ ส่งข้อมูลกลับ Apps Script แล้ว");
+}
+
+window.addEventListener("load", loadCameras);
+</script>
+
+</body>
+</html>
