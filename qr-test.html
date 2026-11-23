@@ -1,0 +1,297 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR Scanner Test</title>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.container {
+  max-width: 520px;
+  margin: 20px auto;
+  background: white;
+  padding: 22px;
+  border-radius: 16px;
+  box-shadow: 0 5px 25px rgba(0,0,0,.08);
+}
+
+h2 { text-align: center; margin-top: 0; }
+
+.subtitle {
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+#reader {
+  width: 100%;
+  margin: 20px auto;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+select, button {
+  width: 100%;
+  padding: 13px;
+  margin: 7px 0;
+  border-radius: 9px;
+  font-size: 15px;
+}
+
+select {
+  border: 1px solid #cbd5e1;
+  background: white;
+}
+
+button {
+  border: none;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.stop { background: #dc2626; }
+.copy { background: #059669; }
+
+.result {
+  background: #f1f5f9;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 15px;
+  word-break: break-all;
+  min-height: 55px;
+}
+
+.status {
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 12px;
+}
+
+#resultText {
+  font-weight: bold;
+  color: #0f172a;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h2>📷 QR Scanner Test</h2>
+
+  <p class="subtitle">
+    GitHub Pages Camera Test
+  </p>
+
+  <select id="cameraSelect">
+    <option value="">กำลังค้นหากล้อง...</option>
+  </select>
+
+  <button id="startBtn" onclick="startScanner()">
+    ▶ เริ่มสแกน
+  </button>
+
+  <button class="stop" onclick="stopScanner()">
+    ■ หยุดกล้อง
+  </button>
+
+  <div id="reader"></div>
+
+  <div class="result">
+    <div>ผลการสแกน:</div>
+    <p id="resultText">ยังไม่มีข้อมูล</p>
+  </div>
+
+  <button class="copy" onclick="copyResult()">
+    📋 Copy QR Code
+  </button>
+
+  <div class="status" id="status">
+    พร้อมใช้งาน
+  </div>
+
+</div>
+
+<script>
+
+let scanner = null;
+let scanning = false;
+let lastResult = "";
+
+const formats = [
+  Html5QrcodeSupportedFormats.QR_CODE,
+  Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.CODE_39,
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
+  Html5QrcodeSupportedFormats.ITF,
+  Html5QrcodeSupportedFormats.PDF_417,
+  Html5QrcodeSupportedFormats.DATA_MATRIX
+];
+
+const config = {
+  fps: 10,
+  qrbox: { width: 250, height: 250 },
+  aspectRatio: 1.0,
+  formatsToSupport: formats
+};
+
+function setStatus(message) {
+  document.getElementById("status").textContent = message;
+}
+
+async function loadCameras() {
+  try {
+    const cameras = await Html5Qrcode.getCameras();
+    const select = document.getElementById("cameraSelect");
+
+    select.innerHTML = "";
+
+    if (!cameras.length) {
+      select.innerHTML =
+        '<option value="">ไม่พบกล้อง</option>';
+      return;
+    }
+
+    cameras.forEach((camera, index) => {
+      const option = document.createElement("option");
+      option.value = camera.id;
+      option.textContent = camera.label || `Camera ${index + 1}`;
+      select.appendChild(option);
+    });
+
+    // เลือกกล้องหลังเป็นค่าเริ่มต้น หากตรวจพบชื่อกล้อง
+    const backCamera = cameras.find(c =>
+      /back|rear|environment|หลัง/i.test(c.label)
+    );
+
+    if (backCamera) {
+      select.value = backCamera.id;
+    }
+
+    setStatus("พบกล้อง " + cameras.length + " ตัว");
+
+  } catch (error) {
+    setStatus("ไม่สามารถเข้าถึงกล้อง: " + error.message);
+  }
+}
+
+async function startScanner() {
+  if (scanning) return;
+
+  try {
+    const cameraId =
+      document.getElementById("cameraSelect").value;
+
+    if (!cameraId) {
+      alert("ไม่พบกล้อง กรุณาตรวจสอบสิทธิ์กล้อง");
+      await loadCameras();
+      return;
+    }
+
+    scanner = new Html5Qrcode("reader", {
+      formatsToSupport: formats,
+      verbose: false
+    });
+
+    setStatus("กำลังเปิดกล้อง...");
+
+    await scanner.start(
+      cameraId,
+      config,
+
+      (decodedText) => {
+        if (decodedText === lastResult) return;
+
+        lastResult = decodedText;
+
+        document.getElementById("resultText").textContent =
+          decodedText;
+
+        setStatus("✓ สแกนสำเร็จ");
+
+        // หยุดกล้องหลังสแกนสำเร็จ
+        stopScanner();
+        setStatus("✓ สแกนสำเร็จ");
+      },
+
+      () => {}
+    );
+
+    scanning = true;
+    document.getElementById("startBtn").disabled = true;
+
+    setStatus("กำลังสแกน...");
+
+  } catch (error) {
+    scanning = false;
+    setStatus("เปิดกล้องไม่สำเร็จ: " + error.message);
+    alert("ไม่สามารถเปิดกล้องได้\n" + error.message);
+  }
+}
+
+async function stopScanner() {
+  if (!scanner || !scanning) return;
+
+  try {
+    await scanner.stop();
+    await scanner.clear();
+
+    scanning = false;
+    scanner = null;
+
+    document.getElementById("startBtn").disabled = false;
+
+    setStatus("หยุดกล้องแล้ว");
+
+  } catch (error) {
+    setStatus("หยุดกล้องไม่สำเร็จ: " + error.message);
+  }
+}
+
+async function copyResult() {
+  if (!lastResult) {
+    alert("ยังไม่มีข้อมูล QR Code");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(lastResult);
+    alert("คัดลอกข้อมูลเรียบร้อย");
+  } catch (error) {
+    alert("ไม่สามารถคัดลอกได้ กรุณาอนุญาต Clipboard");
+  }
+}
+
+// โหลดรายการกล้องเมื่อเปิดหน้าเว็บ
+window.addEventListener("load", loadCameras);
+
+</script>
+
+</body>
+</html>
