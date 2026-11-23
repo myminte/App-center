@@ -370,6 +370,7 @@ function closeScannerPage() {
 
   
 // ส่งข้อมูลกลับ Apps Script
+
 async function sendAgain() {
 
   if (!lastResult) {
@@ -384,7 +385,7 @@ async function sendAgain() {
   const sessionId = params.get("sessionId");
   const api = params.get("api");
 
-  // วิธีส่งผ่าน Apps Script API
+  // ส่งผ่าน Apps Script API
   if (sessionId && api) {
 
     try {
@@ -406,7 +407,9 @@ async function sendAgain() {
 
       sent = true;
 
-      status("ส่งคำขอแล้ว กรุณาตรวจสอบการรับข้อมูลใน Apps Script");
+      status("ส่งคำขอแล้ว กำลังปิด Scanner...");
+
+      closeScannerPage();
 
     } catch (error) {
 
@@ -417,7 +420,7 @@ async function sendAgain() {
     return;
   }
 
-  // วิธีเดิม: ส่งผ่านหน้าต่างที่เปิด Scanner
+  // ส่งผ่านหน้า Apps Script แบบเดิม
   if (window.opener && !window.opener.closed) {
 
     window.opener.postMessage({
@@ -427,14 +430,17 @@ async function sendAgain() {
 
     sent = true;
 
-    status("ส่งข้อความกลับหน้า Apps Script แล้ว");
+    status("ส่งข้อมูลแล้ว กำลังปิด Scanner...");
+
+    closeScannerPage();
 
     return;
   }
 
-  status("ไม่พบ API URL หรือหน้า Apps Script ที่เปิด Scanner");
+  status("ไม่พบ API URL หรือหน้า Apps Script");
 
 }
+
 
 // หยุดกล้องเมื่อออกจากหน้า
 window.addEventListener("pagehide", () => {
