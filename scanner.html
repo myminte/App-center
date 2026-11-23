@@ -359,15 +359,9 @@ async function stopScanner() {
 
 
 function closeScannerPage() {
-  status("ส่งข้อมูลแล้ว กำลังปิดหน้า Scanner...");
+  status("สแกนสำเร็จ กำลังปิด Scanner...");
 
   window.close();
-
-  setTimeout(() => {
-    if (!window.closed) {
-      status("Browser ไม่อนุญาตให้ปิดแท็บอัตโนมัติ กรุณาปิดแท็บนี้ด้วย X");
-    }
-  }, 500);
 }
 
 
