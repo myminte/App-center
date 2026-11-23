@@ -206,25 +206,31 @@ async function stopScanner() {
   document.getElementById("startBtn").disabled = false;
 }
 
+
 function sendAgain() {
   if (!lastResult) {
     status("ยังไม่มีข้อมูลสำหรับส่ง");
     return;
   }
 
-  if (!window.opener || window.opener.closed) {
-    status("ไม่พบหน้า Apps Script ที่เปิด Scanner นี้");
-    return;
+  try {
+    const channel = new BroadcastChannel("APP_CENTER_SCANNER");
+
+    channel.postMessage({
+      type: "APP_CENTER_QR_RESULT",
+      value: lastResult
+    });
+
+    channel.close();
+
+    sent = true;
+    status("✓ ส่งข้อมูลแล้ว กรุณากลับไปแท็บ Apps Script");
+
+  } catch (error) {
+    status("ส่งข้อมูลไม่สำเร็จ: " + error.message);
   }
-
-  window.opener.postMessage({
-    type: "APP_CENTER_QR_RESULT",
-    value: lastResult
-  }, "*");
-
-  sent = true;
-  status("✓ ส่งข้อมูลกลับ Apps Script แล้ว");
 }
+
 
 window.addEventListener("load", loadCameras);
 </script>
