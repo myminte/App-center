@@ -120,6 +120,8 @@ button:disabled {
 
 let scanner = null;
 let scanning = false;
+let scannerStarting = false;
+let stopRequested = false;
 let lastResult = "";
 let sent = false;
 
@@ -254,7 +256,7 @@ async function startScanner() {
 // เปิดกล้องที่เลือก
 async function openSelectedCamera() {
 
-  if (scanning) return;
+  if (scanning || scannerStarting) return;
 
   const cameraId =
     document.getElementById("cameraSelect").value;
@@ -268,16 +270,19 @@ async function openSelectedCamera() {
 
     status("กำลังเปิดกล้อง...");
 
-    scanner = new Html5Qrcode("reader", {
+    const activeScanner = new Html5Qrcode("reader", {
       formatsToSupport: formats,
       verbose: false
     });
+    scanner = activeScanner;
+    scannerStarting = true;
+    stopRequested = false;
 
-    await scanner.start(
+    await activeScanner.start(
       cameraId,
       config,
 
-      async (decodedText) => {
+      (decodedText) => {
 
         if (lastResult) return;
 
@@ -286,9 +291,12 @@ async function openSelectedCamera() {
         document.getElementById("resultText").textContent =
           decodedText;
 
-        await stopScanner();
+        if (scannerStarting) {
+          stopRequested = true;
+          return;
+        }
 
-        sendAgain();
+        finishSuccessfulScan();
 
       },
 
@@ -296,9 +304,17 @@ async function openSelectedCamera() {
 
     );
 
+    scannerStarting = false;
     scanning = true;
 
     document.getElementById("startBtn").disabled = true;
+
+    if (stopRequested) {
+      stopRequested = false;
+      await stopScanner();
+      if (lastResult) await sendAgain();
+      return;
+    }
 
     status("กำลังสแกน...");
 
@@ -306,8 +322,10 @@ async function openSelectedCamera() {
 
     console.error(error);
 
+    scannerStarting = false;
     scanner = null;
     scanning = false;
+    stopRequested = false;
 
     document.getElementById("startBtn").disabled = false;
 
@@ -315,6 +333,11 @@ async function openSelectedCamera() {
 
   }
 
+}
+
+async function finishSuccessfulScan() {
+  await stopScanner();
+  await sendAgain();
 }
 
 // เปลี่ยนกล้อง
@@ -335,22 +358,45 @@ async function stopScanner() {
 
   if (!scanner) return;
 
+  // Wait until start() resolves before stopping the camera.
+  if (scannerStarting) {
+    stopRequested = true;
+    return;
+  }
+
+  const activeScanner = scanner;
+
   try {
 
     if (scanning) {
-      await scanner.stop();
+      await activeScanner.stop();
     }
 
-    await scanner.clear();
+    await activeScanner.clear();
 
   } catch (error) {
 
     console.error(error);
 
+    // Force-release the camera if the library stop call fails.
+    const video = document.querySelector("#reader video");
+    if (video && video.srcObject) {
+      video.srcObject.getTracks().forEach(track => track.stop());
+      video.srcObject = null;
+    }
+
+    try {
+      await activeScanner.clear();
+    } catch (cleanupError) {
+      console.error(cleanupError);
+    }
+
   }
 
   scanning = false;
-  scanner = null;
+  scannerStarting = false;
+  stopRequested = false;
+  if (scanner === activeScanner) scanner = null;
 
   document.getElementById("startBtn").disabled = false;
 
