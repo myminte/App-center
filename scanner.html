@@ -4,21 +4,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#2563eb">
+<title>App Center Scanner</title>
 
-<title>App Center QR Scanner</title>
-
-<!-- QR Code & Barcode Library -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
-  padding: 16px;
+  padding: 20px;
   font-family: Arial, sans-serif;
   background: #f1f5f9;
   color: #1e293b;
@@ -28,54 +23,26 @@ body {
   max-width: 520px;
   margin: 20px auto;
   padding: 22px;
-  background: #ffffff;
-  border-radius: 18px;
-  box-shadow: 0 5px 25px rgba(0,0,0,.08);
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.header h2 {
-  margin-bottom: 6px;
-}
-
-.header p {
-  color: #64748b;
-  font-size: 14px;
-}
-
-.logo {
-  font-size: 42px;
-}
-
-label {
-  display: block;
-  font-size: 14px;
-  font-weight: bold;
-  margin: 14px 0 7px;
-}
-
-select {
-  width: 100%;
-  padding: 13px;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
   background: white;
+  border-radius: 16px;
+  box-shadow: 0 5px 25px #0001;
+}
+
+h2, p { text-align: center; }
+p { color: #64748b; }
+
+button, select {
+  width: 100%;
+  padding: 14px;
+  margin: 7px 0;
+  border-radius: 9px;
   font-size: 15px;
 }
 
 button {
-  width: 100%;
-  padding: 14px;
-  margin-top: 9px;
-  border: none;
-  border-radius: 9px;
+  border: 0;
   color: white;
   background: #2563eb;
-  font-size: 15px;
   font-weight: bold;
   cursor: pointer;
 }
@@ -85,64 +52,26 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.btn-stop {
-  background: #dc2626;
-}
+.stop { background: #dc2626; }
 
-.btn-send {
-  background: #059669;
-}
-
-.btn-copy {
-  background: #64748b;
-}
-
-#reader {
-  width: 100%;
-  margin: 18px auto;
-  overflow: hidden;
-  border-radius: 12px;
-}
-
-.result-box {
-  margin-top: 18px;
-  padding: 15px;
+.result {
   background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  padding: 15px;
   border-radius: 10px;
-}
-
-.result-label {
-  font-size: 13px;
-  color: #64748b;
-  margin-bottom: 8px;
-}
-
-#resultText {
-  font-size: 17px;
-  font-weight: bold;
   word-break: break-all;
-  min-height: 24px;
 }
 
 .status {
+  text-align: center;
   margin-top: 15px;
-  padding: 12px;
-  text-align: center;
-  border-radius: 9px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-size: 13px;
-  word-break: break-word;
+  font-size: 14px;
 }
 
-.footer {
-  text-align: center;
-  color: #94a3b8;
-  font-size: 11px;
-  margin-top: 20px;
+#reader {
+  margin: 15px auto;
+  overflow: hidden;
+  border-radius: 12px;
 }
-
 </style>
 </head>
 
@@ -150,85 +79,49 @@ button:disabled {
 
 <div class="container">
 
-  <div class="header">
-    <div class="logo">📷</div>
-    <h2>App Center Scanner</h2>
-    <p>QR Code & Barcode Scanner</p>
-  </div>
+  <h2>📷 App Center Scanner</h2>
+  <p>QR Code & Barcode Scanner</p>
 
-  <label for="cameraSelect">เลือกกล้อง</label>
-
-  <select id="cameraSelect">
-    <option value="">กำลังค้นหากล้อง...</option>
+  <select id="cameraSelect" disabled>
+    <option value="">กดเริ่มสแกนเพื่อเปิดกล้อง</option>
   </select>
 
   <button id="startBtn" onclick="startScanner()">
-    ▶ เริ่มสแกน
+    ▶ เริ่มสแกน / อนุญาตใช้กล้อง
   </button>
 
-  <button class="btn-stop"
-          id="stopBtn"
-          onclick="stopScanner()">
+  <button class="stop" onclick="stopScanner()">
     ■ หยุดกล้อง
   </button>
 
   <div id="reader"></div>
 
-  <div class="result-box">
+  <h3>ผลการสแกน</h3>
 
-    <div class="result-label">
-      ผลการสแกน / Serial Number
-    </div>
-
-    <div id="resultText">
-      ยังไม่มีข้อมูล
-    </div>
-
+  <div class="result" id="resultText">
+    ยังไม่มีข้อมูล
   </div>
-
-  <button class="btn-copy" onclick="copyResult()">
-    📋 Copy ข้อมูล
-  </button>
-
-  <button class="btn-send" onclick="sendAgain()">
-    ↗ ส่งข้อมูลกลับ Apps Script
-  </button>
 
   <div class="status" id="status">
-    กำลังเตรียมระบบ...
+    พร้อมเริ่มสแกน
   </div>
 
-  <div class="footer">
-    APP CENTER • QR SCANNER
-  </div>
+  <button onclick="sendAgain()" style="background:#059669">
+    ส่งค่ากลับ Apps Script อีกครั้ง
+  </button>
+
+  <button onclick="window.close()" style="background:#64748b">
+    ปิดหน้าสแกน
+  </button>
 
 </div>
 
 <script>
 
-// =====================================
-// 1. SYSTEM CONFIGURATION
-// =====================================
-
 let scanner = null;
 let scanning = false;
 let lastResult = "";
-let sending = false;
-
-const params = new URLSearchParams(
-  window.location.search
-);
-
-const SESSION_ID = params.get("sessionId");
-const API_URL = params.get("api");
-
-const SECRET_KEY =
-  "CHANGE_THIS_TO_YOUR_SECRET_2026";
-
-
-// =====================================
-// 2. BARCODE FORMATS
-// =====================================
+let sent = false;
 
 const formats = [
   Html5QrcodeSupportedFormats.QR_CODE,
@@ -243,88 +136,71 @@ const formats = [
   Html5QrcodeSupportedFormats.DATA_MATRIX
 ];
 
-const scannerConfig = {
+const config = {
   fps: 10,
-  qrbox: {
-    width: 250,
-    height: 250
-  },
-  aspectRatio: 1.0,
+  qrbox: { width: 250, height: 250 },
   formatsToSupport: formats
 };
 
-
-// =====================================
-// 3. STATUS MESSAGE
-// =====================================
-
-function setStatus(message) {
-  document.getElementById("status").textContent =
-    message;
+function status(text) {
+  document.getElementById("status").textContent = text;
 }
 
+// ขอสิทธิ์กล้องเมื่อผู้ใช้กดปุ่มเท่านั้น
+async function startScanner() {
 
-// =====================================
-// 4. CHECK CONNECTION
-// =====================================
+  if (scanning) return;
 
-function checkConfiguration() {
-
-  if (!SESSION_ID || !API_URL) {
-    setStatus(
-      "ไม่พบ Session ID หรือ Apps Script API URL"
-    );
-    return false;
+  if (!window.isSecureContext) {
+    status("กรุณาเปิด Scanner ผ่าน HTTPS");
+    return;
   }
 
-  try {
-    const api = new URL(API_URL);
+  if (!navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia) {
+    status("Browser นี้ไม่รองรับการเปิดกล้อง");
+    return;
+  }
 
-    if (api.protocol !== "https:") {
-      throw new Error("API ต้องใช้ HTTPS");
+  if (typeof Html5Qrcode === "undefined") {
+    status("โหลดระบบสแกนไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ");
+    return;
+  }
+
+  const startBtn = document.getElementById("startBtn");
+  const select = document.getElementById("cameraSelect");
+
+  startBtn.disabled = true;
+
+  try {
+
+    status("กำลังขออนุญาตใช้กล้อง...");
+
+    // ขอสิทธิ์กล้องโดยตรง
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
+
+    // ปิด stream ชั่วคราวเพื่อให้ html5-qrcode เปิดกล้องเอง
+    stream.getTracks().forEach(track => track.stop());
+
+    status("ได้รับอนุญาตแล้ว กำลังค้นหากล้อง...");
+
+    // เมื่อได้รับสิทธิ์แล้วจึงค้นหารายชื่อกล้อง
+    const cameras = await Html5Qrcode.getCameras();
+
+    if (!cameras || cameras.length === 0) {
+      throw new Error("ไม่พบกล้องที่เชื่อมต่อ");
     }
-
-  } catch (error) {
-    setStatus("API URL ไม่ถูกต้อง");
-    return false;
-  }
-
-  return true;
-}
-
-
-// =====================================
-// 5. LOAD CAMERA LIST
-// =====================================
-
-async function loadCameras() {
-
-  try {
-
-    const cameras =
-      await Html5Qrcode.getCameras();
-
-    const select =
-      document.getElementById("cameraSelect");
 
     select.innerHTML = "";
 
-    if (!cameras || cameras.length === 0) {
-
-      select.innerHTML =
-        '<option value="">ไม่พบกล้อง</option>';
-
-      setStatus("ไม่พบกล้อง กรุณาตรวจสอบสิทธิ์");
-      return;
-    }
-
     cameras.forEach((camera, index) => {
 
-      const option =
-        document.createElement("option");
+      const option = document.createElement("option");
 
       option.value = camera.id;
-
       option.textContent =
         camera.label || "Camera " + (index + 1);
 
@@ -332,259 +208,222 @@ async function loadCameras() {
 
     });
 
-    // เลือกกล้องหลังหากตรวจพบ
-    const backCamera = cameras.find(camera =>
+    select.disabled = false;
+
+    // เลือกกล้องหลังเครื่อง ถ้ามี
+    const preferred = cameras.find(camera =>
       /back|rear|environment|หลัง/i.test(camera.label)
     );
 
-    if (backCamera) {
-      select.value = backCamera.id;
+    if (preferred) {
+      select.value = preferred.id;
     }
 
-    setStatus(
-      "พบกล้อง " + cameras.length + " ตัว"
-    );
+    await openSelectedCamera();
 
   } catch (error) {
 
-    setStatus(
-      "โหลดกล้องไม่สำเร็จ: " + error.message
-    );
+    console.error(error);
+
+    if (error.name === "NotAllowedError" ||
+        error.name === "PermissionDeniedError") {
+
+      status("ไม่ได้รับอนุญาตใช้กล้อง กรุณาอนุญาตใน Browser");
+
+    } else if (error.name === "NotFoundError") {
+
+      status("ไม่พบกล้อง กรุณาตรวจสอบ Webcam");
+
+    } else if (error.name === "NotReadableError") {
+
+      status("กล้องกำลังถูกใช้งานโดยโปรแกรมอื่น");
+
+    } else {
+
+      status("เปิดกล้องไม่สำเร็จ: " + error.message);
+
+    }
+
+  } finally {
+
+    startBtn.disabled = scanning;
 
   }
 }
 
-
-// =====================================
-// 6. START SCANNER
-// =====================================
-
-async function startScanner() {
+// เปิดกล้องที่เลือก
+async function openSelectedCamera() {
 
   if (scanning) return;
-
-  if (typeof Html5Qrcode === "undefined") {
-    setStatus("โหลด QR Scanner Library ไม่สำเร็จ");
-    return;
-  }
 
   const cameraId =
     document.getElementById("cameraSelect").value;
 
   if (!cameraId) {
-    alert("กรุณาเลือกกล้อง");
+    status("กรุณาเลือกกล้อง");
     return;
   }
 
   try {
+
+    status("กำลังเปิดกล้อง...");
 
     scanner = new Html5Qrcode("reader", {
       formatsToSupport: formats,
       verbose: false
     });
 
-    setStatus("กำลังเปิดกล้อง...");
-
     await scanner.start(
       cameraId,
-      scannerConfig,
+      config,
 
       async (decodedText) => {
 
         if (lastResult) return;
 
-        // เก็บค่าที่อ่านได้
         lastResult = decodedText;
 
-        document.getElementById("resultText")
-          .textContent = decodedText;
+        document.getElementById("resultText").textContent =
+          decodedText;
 
-        // หยุดกล้อง
         await stopScanner();
 
-        setStatus("✓ สแกนสำเร็จ กำลังส่งข้อมูล...");
-
-        // ส่งข้อมูลไป Apps Script
-        await sendAgain();
+        sendAgain();
 
       },
 
-      () => {
-        // ไม่ต้องแสดงข้อความระหว่างค้นหา QR
-      }
+      () => {}
+
     );
 
     scanning = true;
 
-    document.getElementById("startBtn").disabled =
-      true;
+    document.getElementById("startBtn").disabled = true;
 
-    setStatus("กำลังสแกน QR Code / Barcode...");
+    status("กำลังสแกน...");
 
   } catch (error) {
 
-    scanning = false;
+    console.error(error);
+
     scanner = null;
+    scanning = false;
 
-    document.getElementById("startBtn").disabled =
-      false;
+    document.getElementById("startBtn").disabled = false;
 
-    setStatus(
-      "เปิดกล้องไม่สำเร็จ: " + error.message
-    );
+    status("เปิดกล้องไม่สำเร็จ: " + error.message);
 
   }
 
 }
 
+// เปลี่ยนกล้อง
+document.getElementById("cameraSelect").addEventListener(
+  "change",
+  async function() {
 
-// =====================================
-// 7. STOP SCANNER
-// =====================================
+    if (scanning) {
+      await stopScanner();
+      await openSelectedCamera();
+    }
 
+  }
+);
+
+// หยุดกล้อง
 async function stopScanner() {
 
-  if (!scanner || !scanning) return;
+  if (!scanner) return;
 
   try {
 
-    await scanner.stop();
+    if (scanning) {
+      await scanner.stop();
+    }
+
     await scanner.clear();
 
   } catch (error) {
 
-    console.error("Stop camera:", error);
+    console.error(error);
 
   }
 
   scanning = false;
   scanner = null;
 
-  document.getElementById("startBtn").disabled =
-    false;
+  document.getElementById("startBtn").disabled = false;
 
 }
 
-
-// =====================================
-// 8. SEND RESULT TO APPS SCRIPT
-// =====================================
-
+// ส่งข้อมูลกลับ Apps Script
 async function sendAgain() {
 
   if (!lastResult) {
-
-    setStatus("ยังไม่มีข้อมูลสำหรับส่ง");
+    status("ยังไม่มีข้อมูลสำหรับส่ง");
     return;
-
   }
 
-  if (sending) return;
+  const params = new URLSearchParams(
+    window.location.search
+  );
 
-  if (!checkConfiguration()) return;
+  const sessionId = params.get("sessionId");
+  const api = params.get("api");
 
-  sending = true;
+  // วิธีส่งผ่าน Apps Script API
+  if (sessionId && api) {
 
-  try {
+    try {
 
-    setStatus("กำลังส่งข้อมูลไป Apps Script...");
+      status("กำลังส่งข้อมูลกลับ Apps Script...");
 
-    const payload = {
+      await fetch(api, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify({
+          secret: "CHANGE_THIS_TO_YOUR_SECRET_2026",
+          sessionId: sessionId,
+          value: lastResult
+        })
+      });
 
-      secret: SECRET_KEY,
+      sent = true;
 
-      sessionId: SESSION_ID,
+      status("ส่งคำขอแล้ว กรุณาตรวจสอบการรับข้อมูลใน Apps Script");
 
+    } catch (error) {
+
+      status("ส่งข้อมูลไม่สำเร็จ: " + error.message);
+
+    }
+
+    return;
+  }
+
+  // วิธีเดิม: ส่งผ่านหน้าต่างที่เปิด Scanner
+  if (window.opener && !window.opener.closed) {
+
+    window.opener.postMessage({
+      type: "APP_CENTER_QR_RESULT",
       value: lastResult
+    }, "*");
 
-    };
+    sent = true;
 
-    // ใช้ no-cors เพื่อส่งคำขอข้าม Origin
-    // Browser จะไม่อนุญาตให้อ่าน Response กลับ
+    status("ส่งข้อความกลับหน้า Apps Script แล้ว");
 
-    await fetch(API_URL, {
-
-      method: "POST",
-
-      mode: "no-cors",
-
-      headers: {
-        "Content-Type":
-          "text/plain;charset=utf-8"
-      },
-
-      body: JSON.stringify(payload)
-
-    });
-
-    setStatus(
-      "✓ ส่งคำขอแล้ว กรุณากลับไปตรวจสอบ Apps Script"
-    );
-
-  } catch (error) {
-
-    setStatus(
-      "ส่งข้อมูลไม่สำเร็จ: " + error.message
-    );
-
-  } finally {
-
-    sending = false;
-
-  }
-
-}
-
-
-// =====================================
-// 9. COPY RESULT
-// =====================================
-
-async function copyResult() {
-
-  if (!lastResult) {
-
-    alert("ยังไม่มีข้อมูลสำหรับคัดลอก");
     return;
-
   }
 
-  try {
-
-    await navigator.clipboard.writeText(
-      lastResult
-    );
-
-    alert("คัดลอกข้อมูลเรียบร้อย");
-
-  } catch (error) {
-
-    alert(
-      "ไม่สามารถคัดลอกได้: " + error.message
-    );
-
-  }
+  status("ไม่พบ API URL หรือหน้า Apps Script ที่เปิด Scanner");
 
 }
 
-
-// =====================================
-// 10. INITIALIZE
-// =====================================
-
-window.addEventListener("load", async () => {
-
-  if (!checkConfiguration()) return;
-
-  await loadCameras();
-
-});
-
-
-// =====================================
-// 11. CLEAN UP CAMERA
-// =====================================
-
+// หยุดกล้องเมื่อออกจากหน้า
 window.addEventListener("pagehide", () => {
 
   if (scanner && scanning) {
