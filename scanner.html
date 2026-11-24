@@ -31,7 +31,7 @@ body {
 h2, p { text-align: center; }
 p { color: #64748b; }
 
-button, select {
+button {
   width: 100%;
   padding: 14px;
   margin: 7px 0;
@@ -50,15 +50,6 @@ button {
 button:disabled {
   opacity: .5;
   cursor: not-allowed;
-}
-
-.stop { background: #dc2626; }
-
-.result {
-  background: #f1f5f9;
-  padding: 15px;
-  border-radius: 10px;
-  word-break: break-all;
 }
 
 .status {
@@ -82,37 +73,15 @@ button:disabled {
   <h2>📷 App Center Scanner</h2>
   <p>QR Code & Barcode Scanner</p>
 
-  <select id="cameraSelect" disabled>
-    <option value="">กดเริ่มสแกนเพื่อเปิดกล้อง</option>
-  </select>
-
-  <button id="startBtn" onclick="startScanner()">
-    ▶ เริ่มสแกน / อนุญาตใช้กล้อง
-  </button>
-
-  <button class="stop" onclick="stopScanner()">
-    ■ หยุดกล้อง
+  <button id="startBtn" onclick="startScanner()" hidden>
+    แตะเพื่ออนุญาตใช้กล้อง
   </button>
 
   <div id="reader"></div>
 
-  <h3>ผลการสแกน</h3>
-
-  <div class="result" id="resultText">
-    ยังไม่มีข้อมูล
-  </div>
-
   <div class="status" id="status">
     พร้อมเริ่มสแกน
   </div>
-
-  <button onclick="sendAgain()" style="background:#059669">
-    ส่งค่ากลับ Apps Script อีกครั้ง
-  </button>
-
-  <button onclick="closeScannerManually()" style="background:#64748b">
-    ปิดหน้าสแกน
-  </button>
 
 </div>
 
@@ -123,7 +92,6 @@ let scanning = false;
 let scannerStarting = false;
 let stopRequested = false;
 let lastResult = "";
-let sent = false;
 
 const formats = [
   Html5QrcodeSupportedFormats.QR_CODE,
@@ -147,7 +115,10 @@ const formats = [
 
 const config = {
   fps: 10,
-  qrbox: { width: 250, height: 250 },
+  qrbox: (width, height) => ({
+    width: Math.floor(width * 0.92),
+    height: Math.floor(height * 0.72)
+  }),
   formatsToSupport: formats
 };
 
@@ -155,127 +126,23 @@ function status(text) {
   document.getElementById("status").textContent = text;
 }
 
-// ขอสิทธิ์กล้องเมื่อผู้ใช้กดปุ่มเท่านั้น
 async function startScanner() {
-
-  if (scanning) return;
-
-  if (!window.isSecureContext) {
-    status("กรุณาเปิด Scanner ผ่าน HTTPS");
-    return;
-  }
-
-  if (!navigator.mediaDevices ||
-      !navigator.mediaDevices.getUserMedia) {
-    status("Browser นี้ไม่รองรับการเปิดกล้อง");
-    return;
-  }
-
-  if (typeof Html5Qrcode === "undefined") {
-    status("โหลดระบบสแกนไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ");
-    return;
-  }
-
+  if (scanning || scannerStarting) return;
   const startBtn = document.getElementById("startBtn");
-  const select = document.getElementById("cameraSelect");
-
+  startBtn.hidden = true;
   startBtn.disabled = true;
 
   try {
-
-    status("กำลังขออนุญาตใช้กล้อง...");
-
-    // ขอสิทธิ์กล้องโดยตรง
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: false
-    });
-
-    // ปิด stream ชั่วคราวเพื่อให้ html5-qrcode เปิดกล้องเอง
-    stream.getTracks().forEach(track => track.stop());
-
-    status("ได้รับอนุญาตแล้ว กำลังค้นหากล้อง...");
-
-    // เมื่อได้รับสิทธิ์แล้วจึงค้นหารายชื่อกล้อง
-    const cameras = await Html5Qrcode.getCameras();
-
-    if (!cameras || cameras.length === 0) {
-      throw new Error("ไม่พบกล้องที่เชื่อมต่อ");
-    }
-
-    select.innerHTML = "";
-
-    cameras.forEach((camera, index) => {
-
-      const option = document.createElement("option");
-
-      option.value = camera.id;
-      option.textContent =
-        camera.label || "Camera " + (index + 1);
-
-      select.appendChild(option);
-
-    });
-
-    select.disabled = false;
-
-    // เลือกกล้องหลังเครื่อง ถ้ามี
-    const preferred = cameras.find(camera =>
-      /back|rear|environment|หลัง/i.test(camera.label)
-    );
-
-    if (preferred) {
-      select.value = preferred.id;
-    }
-
-    await openSelectedCamera();
-
-  } catch (error) {
-
-    console.error(error);
-
-    if (error.name === "NotAllowedError" ||
-        error.name === "PermissionDeniedError") {
-
-      status("ไม่ได้รับอนุญาตใช้กล้อง กรุณาอนุญาตใน Browser");
-
-    } else if (error.name === "NotFoundError") {
-
-      status("ไม่พบกล้อง กรุณาตรวจสอบ Webcam");
-
-    } else if (error.name === "NotReadableError") {
-
-      status("กล้องกำลังถูกใช้งานโดยโปรแกรมอื่น");
-
-    } else {
-
-      status("เปิดกล้องไม่สำเร็จ: " + error.message);
-
-    }
-
-  } finally {
-
-    startBtn.disabled = scanning;
-
-  }
-}
-
-// เปิดกล้องที่เลือก
-async function openSelectedCamera() {
-
-  if (scanning || scannerStarting) return;
-
-  const cameraId =
-    document.getElementById("cameraSelect").value;
-
-  if (!cameraId) {
-    status("กรุณาเลือกกล้อง");
-    return;
-  }
-
-  try {
-
     status("กำลังเปิดกล้อง...");
+    if (!window.isSecureContext) {
+      throw new Error("กรุณาเปิด Scanner ผ่าน HTTPS");
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Browser นี้ไม่รองรับการเปิดกล้อง");
+    }
+    if (typeof Html5Qrcode === "undefined") {
+      throw new Error("โหลดระบบสแกนไม่สำเร็จ กรุณารีเฟรชหน้าเว็บ");
+    }
 
     const activeScanner = new Html5Qrcode("reader", {
       formatsToSupport: formats,
@@ -286,29 +153,20 @@ async function openSelectedCamera() {
     stopRequested = false;
 
     await activeScanner.start(
-      cameraId,
+      { facingMode: "environment" },
       config,
 
       (decodedText) => {
-
-        if (lastResult) return;
-
+        if (!decodedText || lastResult) return;
         lastResult = decodedText;
-
-        document.getElementById("resultText").textContent =
-          decodedText;
-
+        status("พบรหัสแล้ว กำลังส่งกลับ...");
         if (scannerStarting) {
           stopRequested = true;
           return;
         }
-
-        finishSuccessfulScan();
-
+        void finishSuccessfulScan();
       },
-
       () => {}
-
     );
 
     scannerStarting = false;
@@ -319,46 +177,30 @@ async function openSelectedCamera() {
     if (stopRequested) {
       stopRequested = false;
       await stopScanner();
-      if (lastResult) await sendAgain();
+      if (lastResult) await sendResult();
       return;
     }
 
     status("กำลังสแกน...");
 
   } catch (error) {
-
     console.error(error);
-
     scannerStarting = false;
-    scanner = null;
     scanning = false;
     stopRequested = false;
-
-    document.getElementById("startBtn").disabled = false;
-
-    status("เปิดกล้องไม่สำเร็จ: " + error.message);
-
+    if (scanner) await stopScanner();
+    startBtn.hidden = false;
+    startBtn.disabled = false;
+    status(error.name === "NotAllowedError" || error.name === "PermissionDeniedError"
+      ? "กรุณาอนุญาตใช้กล้อง แล้วแตะปุ่มด้านล่าง"
+      : "เปิดกล้องไม่สำเร็จ: " + error.message);
   }
-
 }
 
 async function finishSuccessfulScan() {
   await stopScanner();
-  await sendAgain();
+  await sendResult();
 }
-
-// เปลี่ยนกล้อง
-document.getElementById("cameraSelect").addEventListener(
-  "change",
-  async function() {
-
-    if (scanning) {
-      await stopScanner();
-      await openSelectedCamera();
-    }
-
-  }
-);
 
 // หยุดกล้อง
 async function stopScanner() {
@@ -419,29 +261,9 @@ function closeScannerPage() {
 
 
 
-async function closeScannerManually() {
-  await stopScanner();
-
-  // ลองปิดแท็บ
-  window.close();
-
-  // หากปิดไม่ได้ ให้กลับไปหน้าก่อนหน้า
-  setTimeout(() => {
-    if (!window.closed) {
-      if (history.length > 1) {
-        history.back();
-      } else {
-        status("ไม่สามารถปิดแท็บได้ กรุณากด X บนแท็บ Browser");
-      }
-    }
-  }, 300);
-}
-  
-
-  
 // ส่งข้อมูลกลับ Apps Script
 
-async function sendAgain() {
+async function sendResult() {
 
   if (!lastResult) {
     status("ยังไม่มีข้อมูลสำหรับส่ง");
@@ -475,8 +297,6 @@ async function sendAgain() {
         })
       });
 
-      sent = true;
-
       status("ส่งคำขอแล้ว กำลังปิด Scanner...");
 
       closeScannerPage();
@@ -490,27 +310,12 @@ async function sendAgain() {
     return;
   }
 
-  // ส่งผ่านหน้า Apps Script แบบเดิม
-  if (window.opener && !window.opener.closed) {
-
-    window.opener.postMessage({
-      type: "APP_CENTER_QR_RESULT",
-      value: lastResult
-    }, "*");
-
-    sent = true;
-
-    status("ส่งข้อมูลแล้ว กำลังปิด Scanner...");
-
-    closeScannerPage();
-
-    return;
-  }
-
   status("ไม่พบ API URL หรือหน้า Apps Script");
 
 }
 
+
+window.addEventListener("load", startScanner, { once: true });
 
 // หยุดกล้องเมื่อออกจากหน้า
 window.addEventListener("pagehide", () => {
